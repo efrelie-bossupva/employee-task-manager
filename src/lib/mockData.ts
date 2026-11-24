@@ -1,4 +1,11 @@
-import { Profile, TaskComment, TaskItem } from '../types';
+import {
+  DepartmentItem,
+  Profile,
+  ProjectItem,
+  TaskComment,
+  TaskItem,
+  TASK_CATEGORIES,
+} from '../types';
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 const daysAgoStr = (days: number) => {
@@ -63,11 +70,13 @@ export const INITIAL_DEMO_TASKS: TaskItem[] = [
     title: 'Implement Supabase RLS policies for employee task isolation',
     description:
       'Set up PostgreSQL Row-Level Security so employees only query their own rows while managers have full visibility across the organization.',
+    project_name: 'Security & Compliance',
     category: 'Development',
     status: 'completed',
     priority: 'high',
     task_date: todayStr(),
     due_date: todayStr(),
+    completed_date: todayStr(),
     hours_spent: 3.5,
     manager_feedback: 'Great work on the security definer helper function—clean and fast.',
     created_at: new Date(Date.now() - 3600 * 1000 * 5).toISOString(),
@@ -80,12 +89,17 @@ export const INITIAL_DEMO_TASKS: TaskItem[] = [
     title: 'Optimize API response caching on dashboard metrics',
     description:
       'Assigned by Manager: Reduce initial load time on weekly summary metrics and verify mobile responsiveness.',
+    project_name: 'Dashboard v2',
     category: 'Development',
     status: 'in_progress',
     priority: 'urgent',
     task_date: todayStr(),
     due_date: daysAheadStr(1),
+    completed_date: null,
     hours_spent: 2.0,
+    timer_accumulated_seconds: 7200,
+    timer_started_at: new Date(Date.now() - 1000 * 60 * 14).toISOString(),
+    is_timer_running: true,
     manager_feedback: 'Please prioritize this before Friday deployment.',
     created_at: new Date(Date.now() - 3600 * 1000 * 4).toISOString(),
     updated_at: new Date(Date.now() - 3600 * 1000 * 2).toISOString(),
@@ -97,11 +111,13 @@ export const INITIAL_DEMO_TASKS: TaskItem[] = [
     title: 'Onboard 4 new enterprise client accounts & verify billing setup',
     description:
       'Completed walkthrough calls with Acme Corp, Globex, Initech, and Stark Logistics. Configured workspace permissions for each team.',
+    project_name: 'Enterprise Onboarding',
     category: 'Client Support',
     status: 'review',
     priority: 'high',
     task_date: todayStr(),
     due_date: todayStr(),
+    completed_date: null,
     hours_spent: 4.25,
     manager_feedback: null,
     created_at: new Date(Date.now() - 3600 * 1000 * 6).toISOString(),
@@ -131,12 +147,17 @@ export const INITIAL_DEMO_TASKS: TaskItem[] = [
     title: 'Design Q4 product release presentation deck & social assets',
     description:
       'Created 18 slide layouts and exported high-res banners for LinkedIn and documentation portal.',
+    project_name: 'Q4 Product Launch',
     category: 'Design & Creative',
     status: 'in_progress',
     priority: 'medium',
     task_date: todayStr(),
     due_date: daysAheadStr(2),
+    completed_date: null,
     hours_spent: 3.0,
+    timer_accumulated_seconds: 10800,
+    timer_started_at: null,
+    is_timer_running: false,
     manager_feedback: null,
     created_at: new Date(Date.now() - 3600 * 1000 * 8).toISOString(),
     updated_at: new Date(Date.now() - 3600 * 1000 * 2).toISOString(),
@@ -181,6 +202,45 @@ export const INITIAL_DEMO_COMMENTS: TaskComment[] = [
     author_id: 'emp-002',
     content: 'All 4 accounts are live. Ready for manager sign-off.',
     created_at: new Date(Date.now() - 3600 * 1000 * 1.5).toISOString(),
+  },
+];
+
+export const INITIAL_DEMO_DEPARTMENTS: DepartmentItem[] = TASK_CATEGORIES.map(
+  (name, idx) => ({
+    id: `dept-${idx + 1}`,
+    name,
+    created_at: '2026-01-01T08:00:00Z',
+  })
+);
+
+export const INITIAL_DEMO_PROJECTS: ProjectItem[] = [
+  {
+    id: 'proj-1',
+    name: 'Security & Compliance',
+    description: 'RLS hardening, audit logging, and access control improvements.',
+    status: 'active',
+    created_at: '2026-01-05T08:00:00Z',
+  },
+  {
+    id: 'proj-2',
+    name: 'Dashboard v2',
+    description: 'Performance optimization and UI refresh for analytics views.',
+    status: 'active',
+    created_at: '2026-01-08T08:00:00Z',
+  },
+  {
+    id: 'proj-3',
+    name: 'Enterprise Onboarding',
+    description: 'Client workspace setup, billing verification, and training.',
+    status: 'active',
+    created_at: '2026-01-12T08:00:00Z',
+  },
+  {
+    id: 'proj-4',
+    name: 'Q4 Product Launch',
+    description: 'Release decks, creative assets, and go-to-market collateral.',
+    status: 'active',
+    created_at: '2026-01-15T08:00:00Z',
   },
 ];
 

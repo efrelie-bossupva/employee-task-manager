@@ -24,12 +24,17 @@ create table if not exists public.tasks (
   created_by uuid not null references public.profiles(id) on delete cascade,
   title text not null,
   description text not null default '',
+  project_name text,
   category text not null default 'General',
   status text not null default 'todo' check (status in ('todo', 'in_progress', 'review', 'completed', 'blocked')),
   priority text not null default 'medium' check (priority in ('low', 'medium', 'high', 'urgent')),
   task_date date not null default current_date,
   due_date date,
+  completed_date date,
   hours_spent numeric(5,2) not null default 0 check (hours_spent >= 0),
+  timer_started_at timestamptz,
+  timer_accumulated_seconds integer not null default 0 check (timer_accumulated_seconds >= 0),
+  is_timer_running boolean not null default false,
   manager_feedback text,
   is_deleted boolean not null default false,
   deleted_at timestamptz,
@@ -46,6 +51,34 @@ create table if not exists public.task_comments (
   author_id uuid not null references public.profiles(id) on delete cascade,
   content text not null,
   created_at timestamptz not null default now()
+);
+
+-- 4. DEPARTMENTS / CATEGORIES TABLE (Managed by Manager / Admin / Superadmin)
+create table if not exists public.departments (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+-- 5. PROJECTS TABLE (Managed by Manager / Superadmin)
+create table if not exists public.projects (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  description text not null default '',
+  status text not null default 'active' check (status in ('active', 'completed', 'archived')),
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+-- 6. PROJECT MEMBERS TABLE (Assign Employees to Projects)
+create table if not exists public.project_members (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.projects(id) on delete cascade,
+  employee_id uuid not null references public.profiles(id) on delete cascade,
+  assigned_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  unique (project_id, employee_id)
 );
 
 -- Indexes for fast filtering by employee, status, author, and date

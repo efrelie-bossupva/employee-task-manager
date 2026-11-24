@@ -33,7 +33,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex flex-col justify-between p-4 sm:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#2f121b] via-[#753446] to-[#c85a47] flex flex-col justify-between p-4 sm:p-8">
       <div />
 
       {/* Centered Sign In Card with Brand Logo */}
@@ -102,7 +102,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold text-sm shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2 transition cursor-pointer"
+              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#8c4356] to-[#d46652] hover:from-[#753446] hover:to-[#c25441] disabled:opacity-60 text-white font-semibold text-sm shadow-md shadow-[#8c4356]/25 flex items-center justify-center gap-2 transition cursor-pointer"
             >
               <span>{loading ? 'Signing in...' : 'Sign In'}</span>
               <ArrowRight className="w-4 h-4" />
@@ -112,7 +112,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="max-w-md w-full mx-auto text-center text-xs text-slate-400 border-t border-white/10 pt-4">
+      <div className="max-w-md w-full mx-auto text-center text-xs text-[#fae5e0]/80 border-t border-white/15 pt-4">
         <p>Employee Task Logging & Manager Monitoring System</p>
       </div>
     </div>

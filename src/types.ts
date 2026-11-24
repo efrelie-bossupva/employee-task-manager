@@ -1,4 +1,4 @@
-export type UserRole = 'employee' | 'manager' | 'admin' | 'superadmin';
+export type UserRole = 'employee' | 'manager' | 'superadmin';
 
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'completed' | 'blocked';
 
@@ -14,18 +14,49 @@ export interface Profile {
   created_at: string;
 }
 
+export interface DepartmentItem {
+  id: string;
+  name: string;
+  created_by?: string | null;
+  created_at: string;
+}
+
+export type ProjectStatus = 'active' | 'completed' | 'archived';
+
+export interface ProjectItem {
+  id: string;
+  name: string;
+  description?: string;
+  status: ProjectStatus;
+  created_by?: string | null;
+  created_at: string;
+}
+
+export interface ProjectMember {
+  id: string;
+  project_id: string;
+  employee_id: string;
+  assigned_by?: string | null;
+  created_at: string;
+}
+
 export interface TaskItem {
   id: string;
   employee_id: string;
   created_by: string;
   title: string;
   description: string;
+  project_name?: string | null;
   category: string;
   status: TaskStatus;
   priority: TaskPriority;
   task_date: string; // YYYY-MM-DD
   due_date?: string | null;
+  completed_date?: string | null; // YYYY-MM-DD
   hours_spent: number;
+  timer_started_at?: string | null;
+  timer_accumulated_seconds?: number;
+  is_timer_running?: boolean;
   manager_feedback?: string | null;
   is_deleted?: boolean;
   deleted_at?: string | null;

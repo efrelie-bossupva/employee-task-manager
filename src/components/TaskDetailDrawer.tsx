@@ -11,6 +11,11 @@ import {
   ShieldAlert,
   UserCheck,
   CheckCircle2,
+  FolderKanban,
+  Play,
+  Pause,
+  Timer,
+  PictureInPicture2,
 } from 'lucide-react';
 import {
   Profile,
@@ -20,6 +25,11 @@ import {
   STATUS_CONFIG,
   PRIORITY_CONFIG,
 } from '../types';
+import {
+  formatTimerDuration,
+  getTaskElapsedSeconds,
+  secondsToHours,
+} from '../lib/timerUtils';
 
 interface TaskDetailDrawerProps {
   task: TaskItem | null;
@@ -27,6 +37,10 @@ interface TaskDetailDrawerProps {
   currentUser: Profile;
   profilesMap: Record<string, Profile>;
   comments: TaskComment[];
+  nowMs: number;
+  onToggleTimer: (taskId: string) => Promise<void>;
+  onFloatTimer?: () => void;
+  isTimerFloating?: boolean;
   onStatusChange: (taskId: string, status: TaskStatus) => Promise<void>;
   onUpdateFeedback: (taskId: string, feedback: string) => Promise<void>;
   onAddComment: (taskId: string, content: string) => Promise<void>;
@@ -42,6 +56,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   currentUser,
   profilesMap,
   comments,
+  nowMs,
+  onToggleTimer,
+  onFloatTimer,
+  isTimerFloating,
   onStatusChange,
   onUpdateFeedback,
   onAddComment,
@@ -58,9 +76,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   if (!task) return null;
 
   const isManager =
-    currentUser.role === 'manager' ||
-    currentUser.role === 'admin' ||
-    currentUser.role === 'superadmin';
+    currentUser.role === 'manager' || currentUser.role === 'superadmin';
   const employeeProfile = profilesMap[task.employee_id];
   const creatorProfile = profilesMap[task.created_by];
   const wasAssignedByManager = task.created_by !== task.employee_id;
@@ -71,6 +87,11 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     'User';
 
   const taskComments = comments.filter((c) => c.task_id === task.id);
+  const elapsedSeconds = getTaskElapsedSeconds(task, nowMs);
+  const displayHours =
+    task.is_timer_running && task.timer_started_at
+      ? secondsToHours(elapsedSeconds)
+      : Number(task.hours_spent) || 0;
 
   const handleSendComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,8 +112,14 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-xl h-full shadow-2xl border-l border-slate-200 flex flex-col overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-slate-900/50 backdrop-blur-xs"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full max-w-xl h-full shadow-2xl border-l border-slate-200 flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Top bar */}
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
@@ -119,6 +146,12 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
               {task.category}
             </span>
+            {task.project_name && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                <FolderKanban className="w-3 h-3" />
+                {task.project_name}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1">
@@ -232,12 +265,11 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
             <div>
               <span className="text-slate-400 font-medium flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5" /> Task Date
+                <FolderKanban className="w-3.5 h-3.5" /> Project
               </span>
-              <span className="font-bold text-slate-800 mt-0.5 block">{task.task_date}</span>
-              {task.due_date && (
-                <span className="text-[11px] text-slate-500">Due: {task.due_date}</span>
-              )}
+              <span className="font-bold text-indigo-700 mt-0.5 block">
+                {task.project_name || 'Unassigned'}
+              </span>
             </div>
 
             <div>
@@ -245,10 +277,176 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                 <Clock className="w-3.5 h-3.5" /> Hours Logged
               </span>
               <span className="font-bold text-indigo-600 text-sm mt-0.5 block">
-                {Number(task.hours_spent).toFixed(2)} hrs
+                {displayHours.toFixed(2)} hrs
+              </span>
+            </div>
+
+            <div>
+              <span className="text-slate-400 font-medium flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5" /> Task Date
+              </span>
+              <span className="font-bold text-slate-800 mt-0.5 block">{task.task_date}</span>
+            </div>
+
+            <div>
+              <span className="text-slate-400 font-medium flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5" /> Due Date
+              </span>
+              <span className="font-bold text-slate-800 mt-0.5 block">
+                {task.due_date || '—'}
+              </span>
+            </div>
+
+            <div>
+              <span className="text-slate-400 font-medium flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Date Completed
+              </span>
+              <span
+                className={`font-bold mt-0.5 block ${
+                  task.completed_date ? 'text-emerald-700' : 'text-slate-400'
+                }`}
+              >
+                {task.completed_date || 'Not completed'}
               </span>
             </div>
           </div>
+
+          {/* Automated Work Timer Panel */}
+          {!isDeleted && (
+            <div
+              className={`p-4 rounded-2xl border space-y-3 ${
+                task.status === 'in_progress'
+                  ? task.is_timer_running
+                    ? 'bg-emerald-50/70 border-emerald-200'
+                    : 'bg-amber-50/70 border-amber-200'
+                  : task.status === 'review'
+                  ? 'bg-amber-50/50 border-amber-200'
+                  : task.status === 'completed'
+                  ? 'bg-emerald-50/50 border-emerald-200'
+                  : 'bg-slate-50 border-slate-200'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
+                    <Timer className="w-4 h-4 text-indigo-600" />
+                    <span>Automated Work Timer</span>
+                    {task.status === 'in_progress' && (
+                      <span
+                        className={`ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                          task.is_timer_running
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            task.is_timer_running
+                              ? 'bg-emerald-500 animate-pulse'
+                              : 'bg-amber-500'
+                          }`}
+                        />
+                        {task.is_timer_running ? 'Running' : 'Paused'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-baseline gap-2.5 pt-0.5">
+                    <span className="text-2xl font-mono font-extrabold text-slate-900 tracking-tight">
+                      {formatTimerDuration(elapsedSeconds)}
+                    </span>
+                    <span className="text-xs font-semibold text-indigo-700">
+                      ({displayHours.toFixed(2)} hrs)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {task.status === 'in_progress' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onToggleTimer(task.id)}
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border shadow-2xs transition cursor-pointer ${
+                          task.is_timer_running
+                            ? 'bg-white hover:bg-amber-50 text-amber-800 border-amber-300'
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600'
+                        }`}
+                      >
+                        {task.is_timer_running ? (
+                          <>
+                            <Pause className="w-3.5 h-3.5" />
+                            <span>Pause</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-3.5 h-3.5" />
+                            <span>Continue</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onStatusChange(task.id, 'review')}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Send to Review & Log</span>
+                      </button>
+
+                      {onFloatTimer && (
+                        <button
+                          type="button"
+                          onClick={onFloatTimer}
+                          title="Pop out always-on-top floating timer on your desktop"
+                          className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border shadow-2xs transition cursor-pointer ${
+                            isTimerFloating
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                              : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
+                          }`}
+                        >
+                          <PictureInPicture2 className="w-3.5 h-3.5" />
+                          <span>{isTimerFloating ? 'Floating' : 'Float on Desktop'}</span>
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {task.status === 'review' && (
+                    <button
+                      type="button"
+                      onClick={() => onStatusChange(task.id, 'completed')}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Mark as Completed</span>
+                    </button>
+                  )}
+
+                  {(task.status === 'todo' || task.status === 'blocked') && (
+                    <button
+                      type="button"
+                      onClick={() => onStatusChange(task.id, 'in_progress')}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition cursor-pointer"
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                      <span>Start In Progress</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-600">
+                {task.status === 'in_progress'
+                  ? 'Timer runs automatically while In Progress. Pause/Continue anytime; moving to For Review logs your hours.'
+                  : task.status === 'review'
+                  ? 'Timer stopped and hours logged. Mark as Completed once review is approved, or move back to In Progress to continue timing.'
+                  : task.status === 'completed'
+                  ? `Final time of ${displayHours.toFixed(2)} hrs logged and task completed.`
+                  : 'Move task to In Progress to start tracking hours automatically.'}
+              </p>
+            </div>
+          )}
 
           {/* Quick Status Switcher */}
           {!isDeleted && (
@@ -361,9 +559,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   const authorRole =
                     author?.role || cmt.author_role || 'employee';
                   const isAuthorManager =
-                    authorRole === 'manager' ||
-                    authorRole === 'admin' ||
-                    authorRole === 'superadmin';
+                    authorRole === 'manager' || authorRole === 'superadmin';
                   return (
                     <div
                       key={cmt.id}
